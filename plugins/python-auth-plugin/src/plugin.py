@@ -7,6 +7,8 @@ from concurrent import futures
 
 import grpc
 
+from OktaTokenGenerator import getAccessToken
+
 sys.path.append("generated")
 from request_rewrite_plugin_pb2 import Request
 from request_rewrite_plugin_pb2_grpc import RewritePluginServicer, add_RewritePluginServicer_to_server
@@ -27,16 +29,11 @@ class CustomRewritePluginServicer(RewritePluginServicer):
 
         In this example, we will send an alternative header every 5th request.
         """
-        count = next(self.request_count)
+        access_token = getAccessToken(config)
 
         # Create a new list of headers, excluding any existing 'Authorization' headers
         new_headers = [header for header in request.headers if header.name != b"Authorization"]
-        # Send the 'foo' authorization token every fifth call...
-        if count % 5 == 0:
-            new_headers.append(Request.Header(name=b"Authorization", value=b"Bearer foo"))
-        # ...otherwise send 'bar'
-        else:
-            new_headers.append(Request.Header(name=b"Authorization", value=b"Bearer bar"))
+        new_headers.append(Request.Header(name=b"Authorization", value=b"Bearer " + access_token.encode()))
 
         # Finally, replace the request headers with the new headers
         request.headers = new_headers
